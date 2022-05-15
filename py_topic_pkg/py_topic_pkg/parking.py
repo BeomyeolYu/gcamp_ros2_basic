@@ -12,44 +12,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# !/usr/bin/env/ python3
+#!/usr/bin/env python3
 
 import sys
-
-from geometry_msgs.msg import Twist
 import rclpy
 from rclpy.node import Node
+# message type
+from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
 
 
 class ParkingNode(Node):
-
     def __init__(self):
         super().__init__('parking_node')
 
-        self.publisher = self.create_publisher(Twist, 'skidbot/cmd_vel', 10)
-
-        self.subscriber = self.create_subscription(
-            LaserScan, 'skidbot/scan', self.sub_callback, 10
+        queue_size = 10
+        self.publisher = self.create_publisher(
+            Twist, 'skidbot/cmd_vel', queue_size
         )
-        self.subscriber  # prevent unused variable warning
+        self.subscriber = self.create_subscription(
+            LaserScan, 'skidbot/scan', self.sub_callback, queue_size
+        )
         self.publisher  # prevent unused variable warning
+        self.subscriber # prevent unused variable warning
 
-        self.get_logger().info('==== Parking Node Started ====\n')
+        self.get_logger().info('=== Parking Node Start ===\n')
 
     def sub_callback(self, msg):
         twist_msg = Twist()
         distance_forward = msg.ranges[360]
 
-        if distance_forward > 0.5:
-            self.get_logger().info(f'Distance from Front Object : {distance_forward}')
+        if distance_forward > 0.3: #[m]
+            self.get_logger().info(
+                f'Distance from Front Object : {distance_forward}'
+            )
             twist_msg.linear.x = 0.5
             self.publisher.publish(twist_msg)
+
         else:
-            self.get_logger().info('==== Parking Done!!! ====\n')
+            self.get_logger().info(
+                '=== Parking Done ===\n'
+            )
             twist_msg.linear.x = 0.0
             self.publisher.publish(twist_msg)
-
 
 def main(args=None):
     rclpy.init(args=args)
@@ -59,14 +64,13 @@ def main(args=None):
     try:
         rclpy.spin(parking_node)
     except KeyboardInterrupt:
-        parking_node.get_logger().info('==== Server stopped cleanly ====')
+        print("=== Server stopped cleanly ===")
     except BaseException:
-        parking_node.get_logger().info('!! Exception in server:', file=sys.stderr)
+        print("!! Exception in server:", file=sys.stderr)
         raise
     finally:
-        # (optional - Done automatically when node is garbage collected)
+        # (optional, Done automatically when node is garbege collected)
         rclpy.shutdown()
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
